@@ -36,7 +36,7 @@ define cloudwatchlogs::compartment_log (
     ensure_newline => true,
     warn           => true,
     require        => $installed_marker,
-    notify         => Service['awslogs'],
+    notify         => Service[$::cloudwatchlogs::params::service_name],
   }
   concat::fragment { "cloudwatchlogs_fragment_${name}":
     target  => "/etc/awslogs/config/${name}.conf",
