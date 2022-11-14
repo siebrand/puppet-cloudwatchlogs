@@ -33,7 +33,7 @@ class cloudwatchlogs (
   Hash $logs                                = {}
 ) inherits cloudwatchlogs::params {
 
-  $logs_real = merge(hiera_hash('cloudwatchlogs::logs', {}), $logs)
+  $logs_real = merge(lookup('cloudwatchlogs::logs', undef, undef, {}), $logs)
 
   $installed_marker = $::operatingsystem ? {
     'Amazon' => Package['awslogs'],
