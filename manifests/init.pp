@@ -26,32 +26,20 @@
 # Copyright 2015 Danny Roberts & Russ McKendrick
 #
 class cloudwatchlogs (
-  $state_file           = $::cloudwatchlogs::params::state_file,
-  $logging_config_file  = $::cloudwatchlogs::params::logging_config_file,
-  $region               = $::cloudwatchlogs::params::region,
-  $log_level            = $::cloudwatchlogs::params::log_level,
-  $logs                 = {}
+  Stdlib::Absolutepath $state_file          = $::cloudwatchlogs::params::state_file,
+  Stdlib::Absolutepath $logging_config_file = $::cloudwatchlogs::params::logging_config_file,
+  Optional[String] $region                  = $::cloudwatchlogs::params::region,
+  Optional[String] $log_level               = $::cloudwatchlogs::params::log_level,
+  Hash $logs                                = {}
 ) inherits cloudwatchlogs::params {
 
-  validate_hash($logs)
-  $logs_real       = merge(hiera_hash('cloudwatchlogs::logs',{}),$logs)
-
-  validate_absolute_path($state_file)
-  validate_absolute_path($logging_config_file)
-  if $region {
-    validate_string($region)
-  }
-
-  if $log_level {
-    validate_string($log_level)
-  }
+  $logs_real = merge(hiera_hash('cloudwatchlogs::logs', {}), $logs)
 
   $installed_marker = $::operatingsystem ? {
     'Amazon' => Package['awslogs'],
     default  => Exec['cloudwatchlogs-install'],
   }
 
-  validate_hash($logs_real)
   create_resources('cloudwatchlogs::log', $logs_real)
 
   case $::operatingsystem {
@@ -94,7 +82,7 @@ class cloudwatchlogs (
       }
     }
     /^(Ubuntu|CentOS|RedHat)$/: {
-      if ! defined(Package['wget']) {
+      if !defined(Package['wget']) {
         package { 'wget':
           ensure => 'present',
         }
@@ -183,13 +171,13 @@ class cloudwatchlogs (
 
   if $log_level {
     file { '/etc/awslogs/awslogs_dot_log.conf':
-        ensure  => 'present',
-        owner   => 'root',
-        group   => 'root',
-        mode    => '0644',
-        content => template('cloudwatchlogs/awslogs_logging_config_file.erb'),
-        notify  => Service[$service_name],
-        require => $installed_marker,
+      ensure  => 'present',
+      owner   => 'root',
+      group   => 'root',
+      mode    => '0644',
+      content => template('cloudwatchlogs/awslogs_logging_config_file.erb'),
+      notify  => Service[$service_name],
+      require => $installed_marker,
     }
   }
 }

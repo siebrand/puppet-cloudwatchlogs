@@ -11,3 +11,4 @@ spec/fixtures
 # ruby
 .bundle
 Gemfile.lock
+.idea/
