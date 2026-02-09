@@ -36,8 +36,9 @@ class cloudwatchlogs (
   $logs_real = merge(lookup('cloudwatchlogs::logs', undef, undef, {}), $logs)
 
   $installed_marker = $facts['os']['name'] ? {
-    'Amazon' => Package['awslogs'],
-    default  => Exec['cloudwatchlogs-install'],
+    'Amazon'    => Package['awslogs'],
+    'AlmaLinux' => Package['amazon-cloudwatch-agent'],
+    default     => Exec['cloudwatchlogs-install'],
   }
 
   create_resources('cloudwatchlogs::log', $logs_real)
@@ -71,6 +72,58 @@ class cloudwatchlogs (
           notify  => Service[$cloudwatchlogs::params::service_name],
           require => Package['awslogs'],
         }
+      }
+
+      service { $cloudwatchlogs::params::service_name:
+        ensure     => 'running',
+        enable     => true,
+        hasrestart => true,
+        hasstatus  => true,
+        subscribe  => Concat['/etc/awslogs/awslogs.conf'],
+      }
+    }
+    /^(AlmaLinux)$/: {
+      if !defined(Package['wget']) {
+        package { 'wget':
+          ensure => 'present',
+        }
+      }
+
+      exec { 'cloudwatchlogs-wget-rpm':
+        path    => '/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin',
+        command => 'wget -O /usr/local/src/amazon-cloudwatch-agent.rpm https://amazoncloudwatch-agent.s3.amazonaws.com/redhat/amd64/latest/amazon-cloudwatch-agent.rpm',
+        unless  => '[ -e /usr/local/src/amazon-cloudwatch-agent.rpm ]',
+        require => Package['wget'],
+      }
+
+      package { 'amazon-cloudwatch-agent':
+        ensure   => 'present',
+        provider => 'dnf',
+        source   => '/usr/local/src/amazon-cloudwatch-agent.rpm',
+        require  => Exec['cloudwatchlogs-wget-rpm'],
+      }
+
+      file { ['/etc/awslogs', '/etc/awslogs/config']:
+        ensure  => 'directory',
+        owner   => 'root',
+        group   => 'root',
+        mode    => '0755',
+        require => Package['amazon-cloudwatch-agent'],
+      }
+
+      concat { '/etc/awslogs/awslogs.conf':
+        ensure         => 'present',
+        owner          => 'root',
+        group          => 'root',
+        mode           => '0644',
+        ensure_newline => true,
+        warn           => true,
+        require        => File['/etc/awslogs'],
+      }
+      concat::fragment { 'awslogs-header':
+        target  => '/etc/awslogs/awslogs.conf',
+        content => template('cloudwatchlogs/awslogs_header.erb'),
+        order   => '00',
       }
 
       service { $cloudwatchlogs::params::service_name:
@@ -143,7 +196,7 @@ class cloudwatchlogs (
       } else {
         exec { 'cloudwatchlogs-install':
           path    => '/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin',
-          command => "python /usr/local/src/awslogs-agent-setup.py -n -r ${region} -c /etc/awslogs/awslogs.conf",
+          command => "python3 /usr/local/src/awslogs-agent-setup.py -n -r ${region} -c /etc/awslogs/awslogs.conf",
           onlyif  => '[ -e /usr/local/src/awslogs-agent-setup.py ]',
           unless  => '[ -d /var/awslogs/bin ]',
           require => [

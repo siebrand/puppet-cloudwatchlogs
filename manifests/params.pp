@@ -12,6 +12,7 @@ class cloudwatchlogs::params {
   
   case $oslong {
     'Amazon2': { $service_name = 'awslogsd' }
+    'AlmaLinux9': { $service_name = 'amazon-cloudwatch-agent' }
     default: { $service_name = 'awslogs' }
   }
   $logging_config_file = '/etc/awslogs/awslogs_dot_log.conf'

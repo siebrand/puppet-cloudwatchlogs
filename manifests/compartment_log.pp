@@ -30,8 +30,9 @@ define cloudwatchlogs::compartment_log (
   }
 
   $installed_marker = $facts['os']['name'] ? {
-    'Amazon' => Package['awslogs'],
-    default  => Exec['cloudwatchlogs-install'],
+    'Amazon'    => Package['awslogs'],
+    'AlmaLinux' => Package['amazon-cloudwatch-agent'],
+    default     => Exec['cloudwatchlogs-install'],
   }
 
   concat { "/etc/awslogs/config/${name}.conf":

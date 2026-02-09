@@ -20,6 +20,10 @@
     },
     {
     "operatingsystem":"CentOS"
+    },
+    {
+    "operatingsystem":"AlmaLinux",
+    "operatingsystemrelease": ["9"]
     }
   ],
   "requirements": [
