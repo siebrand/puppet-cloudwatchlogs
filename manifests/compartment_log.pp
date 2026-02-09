@@ -1,3 +1,15 @@
+# @summary Creates individual log config files in /etc/awslogs/config/
+#
+# @param path
+#   Absolute path to the log file being managed
+# @param streamname
+#   The name of the stream in Cloudwatch Logs
+# @param datetime_format
+#   Specifies how the timestamp is extracted from logs
+# @param log_group_name
+#   Specifies the destination log group
+# @param multi_line_start_pattern
+#   Regex string that identifies the start of a log line
 define cloudwatchlogs::compartment_log (
   Optional[Stdlib::Absolutepath] $path       = undef,
   String $streamname                         = '{instance_id}',
@@ -17,7 +29,7 @@ define cloudwatchlogs::compartment_log (
     $real_log_group_name = $log_group_name
   }
 
-  $installed_marker = $::operatingsystem ? {
+  $installed_marker = $facts['os']['name'] ? {
     'Amazon' => Package['awslogs'],
     default  => Exec['cloudwatchlogs-install'],
   }

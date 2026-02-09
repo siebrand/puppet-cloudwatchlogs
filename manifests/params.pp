@@ -1,6 +1,8 @@
+# @summary Default parameters for cloudwatchlogs module
+# @api private
 class cloudwatchlogs::params {
 
-  case $::operatingsystem {
+  case $facts['os']['name'] {
     'Amazon': { $state_file = '/var/lib/awslogs/agent-state' }
     default: { $state_file = '/var/awslogs/state/agent-state' }
   }

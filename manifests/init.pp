@@ -35,14 +35,14 @@ class cloudwatchlogs (
 
   $logs_real = merge(lookup('cloudwatchlogs::logs', undef, undef, {}), $logs)
 
-  $installed_marker = $::operatingsystem ? {
+  $installed_marker = $facts['os']['name'] ? {
     'Amazon' => Package['awslogs'],
     default  => Exec['cloudwatchlogs-install'],
   }
 
   create_resources('cloudwatchlogs::log', $logs_real)
 
-  case $::operatingsystem {
+  case $facts['os']['name'] {
     'Amazon': {
       package { 'awslogs':
         ensure => 'present',
@@ -68,12 +68,12 @@ class cloudwatchlogs (
           path    => '/etc/awslogs/awscli.conf',
           line    => "region = ${region}",
           match   => '^region\s*=',
-          notify  => Service[$service_name],
+          notify  => Service[$cloudwatchlogs::params::service_name],
           require => Package['awslogs'],
         }
       }
 
-      service { $service_name:
+      service { $cloudwatchlogs::params::service_name:
         ensure     => 'running',
         enable     => true,
         hasrestart => true,
@@ -100,16 +100,16 @@ class cloudwatchlogs (
         owner  => 'root',
         group  => 'root',
         mode   => '0755',
-      } ->
-      concat { '/etc/awslogs/awslogs.conf':
+      }
+      -> concat { '/etc/awslogs/awslogs.conf':
         ensure         => 'present',
         owner          => 'root',
         group          => 'root',
         mode           => '0644',
         ensure_newline => true,
         warn           => true,
-      } ->
-      file { '/etc/awslogs/config':
+      }
+      -> file { '/etc/awslogs/config':
         ensure => 'directory',
         owner  => 'root',
         group  => 'root',
@@ -124,22 +124,22 @@ class cloudwatchlogs (
 
       file { '/var/awslogs':
         ensure => 'directory',
-      } ->
-      file { '/var/awslogs/etc':
+      }
+      -> file { '/var/awslogs/etc':
         ensure => 'directory',
-      } ->
-      file { '/var/awslogs/etc/awslogs.conf':
+      }
+      -> file { '/var/awslogs/etc/awslogs.conf':
         ensure => 'link',
         target => '/etc/awslogs/awslogs.conf',
-      } ->
-      file { '/var/awslogs/etc/config':
+      }
+      -> file { '/var/awslogs/etc/config':
         ensure => 'link',
         force  => true,
         target => '/etc/awslogs/config',
       }
 
       if ($region == undef) {
-        fail("region must be defined on ${::operatingsystem}")
+        fail("region must be defined on ${facts['os']['name']}")
       } else {
         exec { 'cloudwatchlogs-install':
           path    => '/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin',
@@ -151,13 +151,13 @@ class cloudwatchlogs (
             Exec['cloudwatchlogs-wget']
           ],
           before  => [
-            Service[$service_name],
+            Service[$cloudwatchlogs::params::service_name],
             File['/var/awslogs/etc/awslogs.conf'],
           ]
         }
       }
 
-      service { $service_name:
+      service { $cloudwatchlogs::params::service_name:
         ensure     => 'running',
         enable     => true,
         hasrestart => true,
@@ -166,7 +166,7 @@ class cloudwatchlogs (
         require    => File['/var/awslogs/etc/awslogs.conf'],
       }
     }
-    default: { fail("The ${module_name} module is not supported on ${::osfamily}/${::operatingsystem}.") }
+    default: { fail("The ${module_name} module is not supported on ${facts['os']['family']}/${facts['os']['name']}.") }
   }
 
   if $log_level {
@@ -176,7 +176,7 @@ class cloudwatchlogs (
       group   => 'root',
       mode    => '0644',
       content => template('cloudwatchlogs/awslogs_logging_config_file.erb'),
-      notify  => Service[$service_name],
+      notify  => Service[$cloudwatchlogs::params::service_name],
       require => $installed_marker,
     }
   }
