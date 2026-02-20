@@ -33,7 +33,7 @@ class cloudwatchlogs (
   Hash $logs                                = {}
 ) inherits cloudwatchlogs::params {
 
-  $logs_real = merge(lookup('cloudwatchlogs::logs', undef, undef, {}), $logs)
+  $logs_real = stdlib::merge(lookup('cloudwatchlogs::logs', undef, undef, {}), $logs)
 
   $installed_marker = $facts['os']['name'] ? {
     'Amazon'    => Package['awslogs'],
