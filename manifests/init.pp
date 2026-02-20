@@ -103,7 +103,7 @@ class cloudwatchlogs (
         require  => Exec['cloudwatchlogs-wget-rpm'],
       }
 
-      file { ['/etc/awslogs', '/etc/awslogs/config']:
+      file { '/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.d':
         ensure  => 'directory',
         owner   => 'root',
         group   => 'root',
@@ -111,19 +111,15 @@ class cloudwatchlogs (
         require => Package['amazon-cloudwatch-agent'],
       }
 
-      concat { '/etc/awslogs/awslogs.conf':
-        ensure         => 'present',
-        owner          => 'root',
-        group          => 'root',
-        mode           => '0644',
-        ensure_newline => true,
-        warn           => true,
-        require        => File['/etc/awslogs'],
+      tidy { '/etc/awslogs/config':
+        recurse => true,
+        matches => '*.conf',
       }
-      concat::fragment { 'awslogs-header':
-        target  => '/etc/awslogs/awslogs.conf',
-        content => template('cloudwatchlogs/awslogs_header.erb'),
-        order   => '00',
+
+      tidy { '/etc/awslogs':
+        recurse => false,
+        matches => ['awslogs.conf', 'awslogs_dot_log.conf'],
+        require => Tidy['/etc/awslogs/config'],
       }
 
       service { $cloudwatchlogs::params::service_name:
@@ -131,7 +127,7 @@ class cloudwatchlogs (
         enable     => true,
         hasrestart => true,
         hasstatus  => true,
-        subscribe  => Concat['/etc/awslogs/awslogs.conf'],
+        require    => Package['amazon-cloudwatch-agent'],
       }
     }
     /^(Ubuntu|CentOS|RedHat)$/: {

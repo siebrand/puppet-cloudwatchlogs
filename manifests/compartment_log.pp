@@ -35,18 +35,33 @@ define cloudwatchlogs::compartment_log (
     default     => Exec['cloudwatchlogs-install'],
   }
 
-  concat { "/etc/awslogs/config/${name}.conf":
-    ensure         => 'present',
-    owner          => 'root',
-    group          => 'root',
-    mode           => '0644',
-    ensure_newline => true,
-    warn           => true,
-    require        => $installed_marker,
-    notify         => Service[$::cloudwatchlogs::params::service_name],
-  }
-  concat::fragment { "cloudwatchlogs_fragment_${name}":
-    target  => "/etc/awslogs/config/${name}.conf",
-    content => template('cloudwatchlogs/awslogs_log.erb'),
+  case $facts['os']['name'] {
+    'AlmaLinux': {
+      file { "/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.d/${name}.json":
+        ensure  => 'present',
+        owner   => 'root',
+        group   => 'root',
+        mode    => '0644',
+        content => template('cloudwatchlogs/cloudwatch_agent_log.json.erb'),
+        require => $installed_marker,
+        notify  => Service[$::cloudwatchlogs::params::service_name],
+      }
+    }
+    default: {
+      concat { "/etc/awslogs/config/${name}.conf":
+        ensure         => 'present',
+        owner          => 'root',
+        group          => 'root',
+        mode           => '0644',
+        ensure_newline => true,
+        warn           => true,
+        require        => $installed_marker,
+        notify         => Service[$::cloudwatchlogs::params::service_name],
+      }
+      concat::fragment { "cloudwatchlogs_fragment_${name}":
+        target  => "/etc/awslogs/config/${name}.conf",
+        content => template('cloudwatchlogs/awslogs_log.erb'),
+      }
+    }
   }
 }
