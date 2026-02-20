@@ -117,7 +117,7 @@ class cloudwatchlogs (
       }
 
       tidy { '/etc/awslogs':
-        recurse => false,
+        recurse => 1,
         matches => ['awslogs.conf', 'awslogs_dot_log.conf'],
         require => Tidy['/etc/awslogs/config'],
       }
