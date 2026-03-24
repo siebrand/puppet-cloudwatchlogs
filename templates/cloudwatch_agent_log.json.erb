@@ -8,7 +8,7 @@
             "log_group_name": "<%= @real_log_group_name %>",
             "log_stream_name": "<%= @streamname %>",
             "timestamp_format": "<%= @datetime_format %>"<% if @multi_line_start_pattern -%>,
-            "multi_line_start_pattern": "<%= @multi_line_start_pattern %>"<% end %>
+            "multi_line_start_pattern": <%= @multi_line_start_pattern.to_json %><% end %>
           }
         ]
       }
